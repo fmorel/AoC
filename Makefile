@@ -1,2 +1,2 @@
 % : %.c
-	gcc -Werror -Wall -g -o$@ $<
+	gcc -Werror -Wall -Wextra -g -o$@ $<

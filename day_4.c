@@ -23,7 +23,7 @@ typedef struct {
 typedef struct {
     Date day;
     Guard *guard;
-    uint64_t asleep_bmp;
+    char asleep[60];
 } Day;
 
 int n_days = 0;
@@ -68,17 +68,18 @@ Day *add_day(Date *date)
         if (days_equal(&days[i], date))
             return &days[i];
     }
-    days[n_days].day = *date;
-    days[n_days].asleep_bmp = 0;
-    days[n_days].guard = NULL;
+    Day * day = &days[n_days++];
+    day->day = *date;
+    memset(day->asleep, 0, sizeof(day->asleep));
+    day->guard = NULL;
 
-    return &days[n_days++];
+    return day;
 }
 
-void print_bitmap(uint64_t bmp) {
+void print_asleep(char *a) {
     int i;
     for (i=0; i < 60; i++) {
-        if (bmp & (1LL<<i))
+        if (a[i])
             printf("#");
         else
             printf(".");
@@ -87,16 +88,20 @@ void print_bitmap(uint64_t bmp) {
 }
 
 //We only have the ones at awake/asleep boundaries, need to fill it
-void process_bitmap(uint64_t *bmp)
+//and return total number of asleep minutes
+int  process_asleep(char *a)
 {
-    int i, asleep = 0;
+    int i, asleep = 0, n_asleep = 0;
     for (i = 0; i < 60; i++) {
-        if (*bmp & (1ULL<<i)) {
+        if (a[i]) {
+            n_asleep++;
             asleep = !asleep;
             continue;
         }
-        *bmp |= ((uint64_t)asleep) << i;
+        a[i] = asleep;
+        n_asleep += asleep;
     }
+    return n_asleep;
 }
 
 
@@ -133,6 +138,7 @@ int main(void)
     size_t len = 64;
     char *string = malloc(len);
 
+    /* Parse file */
     while (!feof(f)) {
         int id, n_args;
 
@@ -159,10 +165,10 @@ int main(void)
             day->guard = guard;
             n_b++;
         } else if (strcmp(string, "falls asleep\n") == 0) {
-            day->asleep_bmp |= (1ULL<<d->mi);
+            day->asleep[d->mi] = 1;
             n_a++;
         } else {
-            day->asleep_bmp |= (1ULL<<(d->mi-1));
+            day->asleep[d->mi-1] = 1;
             n_w++;
         }
 
@@ -179,8 +185,7 @@ int main(void)
     for (i = 0; i < n_days; i++) {
         if (!days[i].guard)
             error("No guard for this day ???");
-        process_bitmap(&days[i].asleep_bmp);
-        days[i].guard->total_sleep += __builtin_popcountll(days[i].asleep_bmp);
+        days[i].guard->total_sleep += process_asleep(days[i].asleep);
     }
 
     /** Strategy 1 ***/
@@ -206,9 +211,9 @@ int main(void)
         if (days[i].guard->id != best->id)
             continue;
         //printf("%02d-%02d : ", days[i].day.mo, days[i].day.d);
-        print_bitmap(days[i].asleep_bmp);
+        print_asleep(days[i].asleep);
         for (j = 0; j < 60 ; j++) {
-            if (days[i].asleep_bmp & (1ULL<<j))
+            if (days[i].asleep[j])
                 minutes[j]++;
         }
     }
@@ -232,7 +237,7 @@ int main(void)
     total_sleep = 0;
     for (i = 0; i < n_days; i++) {
         for (j = 0; j < 60 ; j++) {
-            if (days[i].asleep_bmp & (1ULL<<j)) {
+            if (days[i].asleep[j]) {
                 days[i].guard->minutes[j]++;
                 if (days[i].guard->minutes[j] > total_sleep) {
                     total_sleep = days[i].guard->minutes[j];
