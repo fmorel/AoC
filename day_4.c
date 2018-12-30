@@ -13,23 +13,29 @@ typedef struct {
     int mi;
 } Date;
 
+typedef struct {
+    int id;
+    int total_sleep;
+    int total_shifts;
+} Guard;
+
+typedef struct {
+    Date day;
+    Guard *guard;
+    uint64_t asleep_bmp;
+} Day;
+
 typedef enum {
     BEGIN,
     ASLEEP,
     WAKE
 } EventType;
 
-typedef struct {
-    Date day;
-    int id;
-    uint64_t asleep_bmp;
-} Day;
-
 
 typedef struct {
     Day *day;
     Date date;
-    int id;
+    Guard *guard;
     EventType type;
 } Event;
 
@@ -39,6 +45,9 @@ Event events[MAX_EVENTS];
 int n_days = 0;
 Day days[365];
 
+#define MAX_GUARDS 25
+int n_guards = 0;
+Guard guards[MAX_GUARDS];
 
 void __attribute__((noreturn)) error(char *s) {
     printf("##Error : %s\n", s);
@@ -59,28 +68,28 @@ void date_incr_by_1(Date *d)
     }
 }
 
-int days_equal(Day *d1, Day *d2)
+int days_equal(Day *d1, Date *date)
 {
-    return (d1->day.mo == d2->day.mo && d1->day.d == d2->day.d);
+    return (d1->day.mo == date->mo && d1->day.d == date->d);
 }
 
-Day *add_day(Day *d)
+Day *add_day(Date *date)
 {
     int i;
     for (i = 0; i < n_days; i++) {
-        if (days_equal(d, &days[i]))
+        if (days_equal(&days[i], date))
             return &days[i];
     }
-    days[n_days] = *d;
+    days[n_days].day = *date;
     days[n_days].asleep_bmp = 0;
 
     return &days[n_days++];
 }
 
-void print_bitmap(uint64_t *bmp) {
+void print_bitmap(uint64_t bmp) {
     int i;
     for (i=0; i < 60; i++) {
-        if (*bmp & (1LL<<i))
+        if (bmp & (1LL<<i))
             printf("#");
         else
             printf(".");
@@ -118,19 +127,39 @@ void bitmap_awake(uint64_t *bmp, int bit)
     *bmp |= n_before_mask;
 }
 
+Guard *add_guard(int id) {
+    int i;
+    for (i = 0; i < n_guards; i++) {
+        if (guards[i].id == id) {
+            guards[i].total_shifts++;
+            return &guards[i];
+        }
+    }
+    if (n_guards == MAX_GUARDS)
+        error("Too many guards !\n");
+    guards[n_guards].id = id;
+    guards[n_guards].total_sleep = 0;
+    guards[n_guards].total_shifts = 1;
+
+    return &guards[n_guards++];
+}
+
 int main(void)
 {
 
     FILE *f = fopen("day_4.input", "r");
 
     Date d_s, *d = &d_s;
-    Day day_s, *day = &day_s;
     Event *ev;
+    Day *day;
+    Guard *guard;
+
     int i = 0, j, n_events;
     int n_b = 0, n_a = 0, n_w = 0;
 
     size_t len = 64;
     char *string = malloc(len);
+
 
     while (!feof(f)) {
         ev = &events[i];
@@ -154,11 +183,11 @@ int main(void)
             break;
         
         ev->date = *d;
-        day->day = *d;
-        ev->day = add_day(day);
+        ev->day = add_day(d);
         if (sscanf(string, "Guard #%d begins shift\n", &id)) {
-            ev->id = id;
-            ev->day->id = id;
+            guard = add_guard(id);
+            ev->guard = guard;
+            ev->day->guard = guard;
             ev->type = BEGIN;
             n_b++;
         } else if (strcmp(string, "falls asleep\n") == 0) {
@@ -177,29 +206,65 @@ int main(void)
     fclose(f);
 
     n_events = i;
-    printf("%d events found, %d begin, %d asleep, %d wake up for a total of %d days\n",
-        i, n_b, n_a, n_w, n_days);
+    printf("%d events found, %d begin, %d asleep, %d wake up for a total of %d days and %d guards\n",
+        n_events, n_b, n_a, n_w, n_days, n_guards);
 
 
-    /* For each day, fill  the asleep minutes bitmap */
-    for (i = 5; i < n_days; i++) {
-        day = &days[i];
-        printf("Day is %d-%d\n", day->day.mo, day->day.d);
-        for (j = 0; j < n_events; j++) {
-            ev = &events[j];
-            if (ev->day == day) {
-                int mi = ev->date.mi;
-                if (ev->type == ASLEEP) {
-                    bitmap_asleep(&day->asleep_bmp, mi);
-                    
-                } else if (ev->type == WAKE) {
-                    bitmap_awake(&day->asleep_bmp, mi);
-                }
-            }
+    /* Complete asleep_bmp for each days by parsing the events */
+    for (i = 0; i < n_events; i++) {
+        ev = &events[i];
+        day = ev->day;
+        int mi = ev->date.mi;
+        if (ev->type == ASLEEP) {
+            bitmap_asleep(&day->asleep_bmp, mi);
+        } else if (ev->type == WAKE) {
+            bitmap_awake(&day->asleep_bmp, mi);
         }
-        print_bitmap(&day->asleep_bmp);
     }
-        
+
+    /* Compute total sleep for each day */
+    for (i = 0; i < n_days; i++) {
+        days[i].guard->total_sleep += __builtin_popcountll(days[i].asleep_bmp);
+    }
+
+    /* Get guard with maximum sleep  (or sleep ratio ? Neither answer seem to work anyway ...) */
+    float  best_sleep_ratio = 0, sleep_ratio;
+    Guard *best;
+    for (i = 0; i < n_guards; i++) {
+        sleep_ratio = (float)guards[i].total_sleep / 1 ;/*guards[i].total_shifts;*/
+        printf("Guard %d has %d total sleep (%d shifts), ratio %.2f\n", guards[i].id, guards[i].total_sleep, guards[i].total_shifts, sleep_ratio/60);
+        if (sleep_ratio > best_sleep_ratio) {
+            best_sleep_ratio = sleep_ratio;
+            best = &guards[i];
+        }
+    }
+    printf("Guard with most sleep is %d (ratio = %.2f)\n", best->id, best_sleep_ratio/60);
+
+    /* Find best minute for our best guard */
+    int minutes[60];
+    memset(minutes, 0, sizeof(minutes));
+
+    for (i = 0; i < n_days; i++) {
+        if (days[i].guard->id != best->id)
+            continue;
+        printf("%02d-%02d : ", days[i].day.mo, days[i].day.d);
+        print_bitmap(days[i].asleep_bmp);
+        for (j = 0; j < 60 ; j++) {
+            if (days[i].asleep_bmp & (1ULL<<j))
+                minutes[j]++;
+        }
+    }
+
+    int total_sleep = 0;
+    int best_minute = 0;
+    for (i = 0 ; i < 60; i++) {
+        if (minutes[i] > total_sleep) {
+            total_sleep = minutes[i];
+            best_minute = i;
+        }
+    }
+
+    printf("Best minute is %d (%d occurrence), answer is %d\n", best_minute, total_sleep, best->id*best_minute);
     return 0;
 }
 
