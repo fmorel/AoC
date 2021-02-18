@@ -156,7 +156,7 @@ int main(void)
         }
 
         //Get the rest of the line
-        if (getline(&string, &len, f) < 0)
+        if (getline(&string, &len, f) == -1)
             break;
         
         day = add_day(d);
