@@ -147,10 +147,49 @@ fn day_3(filename: &Path, part2: bool)
     println!("Total priorities is {}", priority);
 }
 
+/* Day 4 */
+/* Assignment is a bitmap , so it's easy to perfom union or intersection on them */
+fn parse_assignment(range: &str) -> u128
+{
+    let (beg, end) = range.split_once('-').unwrap();
+    let (beg_i, end_i) = (beg.parse::<u8>().unwrap(), end.parse::<u8>().unwrap());
+    assert!(beg_i < 100 && end_i < 100);
+    ((1 << (end_i+1)) - 1) & !((1 << beg_i) - 1)
+}
+
+fn parse_assignment_pair(pair: &str) -> (u128, u128)
+{
+    let (a1, a2) = pair.split_once(',').unwrap();
+    (parse_assignment(a1), parse_assignment(a2))
+}
+
+fn day_4(filename: &Path, part2: bool)
+{
+    let file = File::open(filename)
+                .expect("Could not open file");
+    let lines = BufReader::new(file).lines();
+    let mut overlaps = 0;
+    for line in lines {
+        let (a1, a2) = parse_assignment_pair(line.unwrap().as_str());
+        if part2 {
+            if a1 & a2 != 0 {
+                overlaps += 1
+            }
+        } else {
+            let all: u128 = a1 | a2;
+            if a1 == all || a2 == all {
+                overlaps += 1
+            }
+        }
+    }
+    println!("There are {} overlaps", overlaps);
+}
+
 /* Main */
 fn main()
 {
     //day_1(Path::new("inputs/day1.txt"));
     //day_2(Path::new("inputs/day2.txt"));
-    day_3(Path::new("inputs/day3.txt"), true);
+    //day_3(Path::new("inputs/day3.txt"), true);
+    day_4(Path::new("inputs/day4.txt"), true);
 }
