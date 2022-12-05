@@ -65,14 +65,14 @@ fn rps_index(play :&str) -> i32
     }
 }
 
-fn rps_score(play :&str, day2: bool) -> u32
+fn rps_score(play :&str, part2: bool) -> u32
 {
     /* Add the 'blank line' at index 9 */
     let score_tab = [1+3, 2+6, 3+0, 1+0, 2+3, 3+6, 1+6, 2+0, 3+3, 0];
     let score_tab_2 = [3+0, 1+3, 2+6, 1+0, 2+3, 3+6, 2+0, 3+3, 1+6, 0];
     let index = rps_index(play);
     assert!(index >= 0);
-    if day2 {
+    if part2 {
         score_tab_2[index as usize]
     } else {
         score_tab[index as usize]
@@ -91,9 +91,66 @@ fn day_2(filename: &Path)
     println!("Total points is {}", points);
 }
 
+/* Day 3 */
+/* Create a bitmap for each compartment where a bit are indexed by priority */
+fn backpack_compartment_items(compartment: &str) -> u64
+{
+    let mut items_bmp: u64 = 0;
+    // 'A' has ASCII 0x41 and 'a' 0x61
+    for c in compartment.chars() {
+        match c {
+            'A'..='Z' => items_bmp |= 1 << ((c as u8) - 0x41u8 + 26),
+            'a'..='z' => items_bmp |= 1 << ((c as u8) - 0x61u8),
+            _ => println!("Unexpected character {} in backpack", c)
+        }
+    }
+    items_bmp
+}
+
+fn backpack_get_priority(backpack: &str) -> u32
+{
+    //string length should be even
+    assert!(backpack.len() % 2 == 0);
+    //Split in half
+    let (compt0, compt1) = backpack.split_at(backpack.len() / 2);
+    let items_bmp0 = backpack_compartment_items(compt0);
+    let items_bmp1 = backpack_compartment_items(compt1);
+    let common_item = items_bmp0 & items_bmp1;
+    //Return the index of the first common item (should be the first one, too !)
+    common_item.trailing_zeros() + 1
+}
+
+fn day_3(filename: &Path, part2: bool)
+{
+    let file = File::open(filename)
+                .expect("Could not open file");
+    let lines = BufReader::new(file).lines();
+    let mut priority = 0;
+    let mut elf_idx = 0;
+    let mut group_items_bmp: u64 = 0;
+    for line in lines {
+        if part2 {
+            if elf_idx == 0 {
+                group_items_bmp = backpack_compartment_items(line.unwrap().as_str());
+            } else {
+                group_items_bmp &= backpack_compartment_items(line.unwrap().as_str());
+            }
+            elf_idx += 1;
+            if elf_idx == 3 {
+                elf_idx = 0;
+                priority += group_items_bmp.trailing_zeros() + 1;
+            }
+        } else {
+            priority += backpack_get_priority(line.unwrap().as_str());
+        }
+    }
+    println!("Total priorities is {}", priority);
+}
+
 /* Main */
 fn main()
 {
     //day_1(Path::new("inputs/day1.txt"));
-    day_2(Path::new("inputs/day2.txt"));
+    //day_2(Path::new("inputs/day2.txt"));
+    day_3(Path::new("inputs/day3.txt"), true);
 }
