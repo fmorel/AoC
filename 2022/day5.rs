@@ -24,7 +24,7 @@ fn parse_initial_stacks(stacks: &mut [Vec<u8>], line: &str) -> bool
     header
 }
 
-fn parse_move(stacks: &mut [Vec<u8>], line: &str)
+fn parse_move(stacks: &mut [Vec<u8>], line: &str, part2: bool)
 {
     let tokens = line.split_ascii_whitespace();
     let moves: Vec<usize> = tokens.filter_map(|t| t.parse::<usize>().ok()).collect();
@@ -33,9 +33,16 @@ fn parse_move(stacks: &mut [Vec<u8>], line: &str)
     }
     //moves : number, stack start, stack end (and index them from 0)
     let (n, s, e) = (moves[0], moves[1] - 1 , moves[2] - 1);
-    for _i in 0..n {
-        let item = stacks[s].pop().expect("Unstacking empty stack !");
-        stacks[e].push(item);
+    if part2 {
+        /* Part2: move in bulk */
+        let mut v = stacks[s].split_off(stacks[s].len() - n);
+        stacks[e].append(&mut v);
+    } else {
+        /* Part 1: Pop/push repeteadly */
+        for _i in 0..n {
+            let item = stacks[s].pop().expect("Unstacking empty stack !");
+            stacks[e].push(item);
+        }
     }
     /* Debug */
     //print!("After move {} f {} to {}: ", n, s, e);
@@ -50,7 +57,7 @@ fn print_stack_top(stacks: &[Vec<u8>])
     println!("");
 }
 
-pub fn day5(filename: &Path)
+pub fn day5(filename: &Path, part2: bool)
 {
     let mut stacks: [Vec<u8>; 9] = Default::default();
     let mut header = true;
@@ -59,7 +66,7 @@ pub fn day5(filename: &Path)
         if header {
             header = parse_initial_stacks(&mut stacks, line.as_str());
         } else {
-            parse_move(&mut stacks, line.as_str());
+            parse_move(&mut stacks, line.as_str(), part2);
         }
     }
     print!("Final stack top: ");
