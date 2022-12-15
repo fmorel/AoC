@@ -1,4 +1,4 @@
-
+#![allow(dead_code)]
 
 use file_utils::file_to_lines;
 use std::path::Path;
