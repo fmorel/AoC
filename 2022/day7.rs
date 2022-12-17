@@ -129,4 +129,14 @@ pub fn day7(filename: &Path)
                                                             }
                                                         });
     println!("Sum of sizes under 100000: {}", size_under_x);
+    let update_size = 30000000 - (70000000 - total_size);
+    /* Choose the smallest directory above update_size */
+    let mut dirs = term.filesystem.values().collect::<Vec<&Directory>>();
+    dirs.sort_by(|a, b| a.size.cmp(&b.size));
+    for d in dirs {
+        if d.size > update_size {
+            println!("Directory above required size {} has size {}", update_size, d.size);
+            break;
+        }
+    }
 }
