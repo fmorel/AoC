@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use file_utils::file_to_lines;
+use crate::file_utils::file_to_lines;
 use std::path::Path;
 
 fn parse_initial_stacks(stacks: &mut [Vec<u8>], line: &str) -> bool

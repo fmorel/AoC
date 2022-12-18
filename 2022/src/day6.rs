@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use file_utils::file_to_lines;
+use crate::file_utils::file_to_lines;
 use std::path::Path;
 
 pub fn day6(filename: &Path, part2: bool)
