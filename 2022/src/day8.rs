@@ -9,7 +9,8 @@ use std::cmp;
 struct Visibility
 {
     max_height: i8, /* max height seen in this direction */
-    visible: bool   /* visiblity status in this direction */
+    visible: bool,   /* visiblity status in this direction */
+    view_dist_by_height: [u8; 10],   /* viewing distance in this direction for any given tree height (part 2)*/
 }
 
 #[derive(Default, Debug, Clone)]
@@ -21,20 +22,39 @@ struct Tree
 
 impl Tree
 {
-    fn extend_visibility(&mut self, max_height: i8, dir: usize)
+    fn extend_visibility(&mut self, v: Visibility, dir: usize)
     {
-        self.v_trbl[dir].max_height = max_height;
+        self.v_trbl[dir] = v;
         self.v_trbl[dir].visible = self.height > self.v_trbl[dir].max_height;
     }
 
-    fn neighbour_max_height(&self, dir: usize) -> i8
+    fn neighbour_visibility(&self, dir: usize) -> Visibility
     {
-        cmp::max(self.v_trbl[dir].max_height, self.height)
+        let mut v : Visibility = self.v_trbl[dir].clone();
+        v.max_height = cmp::max(v.max_height, self.height);
+        /* viewing distance: reset to 1 for tree smaller or equal to current height
+         * Increment for bigger heights */
+        for i in 0..self.height+1 {
+            v.view_dist_by_height[i as usize] = 1;
+        }
+        for i in (self.height+1)..10 {
+            v.view_dist_by_height[i as usize] += 1;
+        }
+        v
     }
 
     fn is_visible(&self) -> bool
     {
         self.v_trbl[0].visible || self.v_trbl[1].visible || self.v_trbl[2].visible || self.v_trbl[3].visible
+    }
+
+    fn scenic_score(&self) -> u32
+    {
+        let mut s: u32 = 1;
+        for i in 0..4 {
+            s *= self.v_trbl[i].view_dist_by_height[self.height as usize] as u32;
+        }
+        s
     }
 }
 
@@ -59,49 +79,57 @@ pub fn day8(filename: &Path)
     let w = grid.num_columns();
     let h = grid.num_rows();
     let mut trees_visible = 0;
+    let mut scenic_score = 0;
     /* Now we need to populate the visibility data.
-     * We will need two passes :
-     * - First pass, from top left to bottom right will propagate visiblity status for top and left direction
-     * - Second pass, from bottom right to top left will update bottom and right direction.
+     * We will need three passes :
+     * - First set the edges
+     * - Then from top left to bottom right will propagate visiblity status for top and left direction
+     * - Finally, from bottom right to top left will update bottom and right direction.
      *   We will also use the second pass to perform the count of visible trees since all direction
      *   will be known */
+    /* Edges */
+    for j in 0..w {
+        grid[(0, j)].v_trbl[0].visible = true;
+        grid[(h-1, j)].v_trbl[2].visible = true;
+        trees_visible += 2;
+    }
     for i in 0..h {
-        for j in 0..w {
-            let mut max_height = -1;
-            /* Edges behave like max_height == -1 in their direction */
+        grid[(i, 0)].v_trbl[3].visible = true;
+        grid[(i, w-1)].v_trbl[1].visible = true;
+        trees_visible += 2;
+    }
+    trees_visible -= 4;  /* corners were counted twice */
+
+    /* Pass 1: top-left to bottom-right (without edges) */
+    for i in 1..h-1 {
+        for j in 1..w-1 {
             /* visibility top */
-            if i > 0 {
-                max_height = grid[(i-1, j)].neighbour_max_height(0);
-            }
-            grid[(i,j)].extend_visibility(max_height, 0);
+            let vt = grid[(i-1, j)].neighbour_visibility(0);
+            grid[(i,j)].extend_visibility(vt, 0);
             /* visibility left */
-            max_height = -1;
-            if j > 0 {
-                max_height = grid[(i, j-1)].neighbour_max_height(3);
-            }
-            grid[(i,j)].extend_visibility(max_height, 3);
+            let vl = grid[(i, j-1)].neighbour_visibility(3);
+            grid[(i,j)].extend_visibility(vl, 3);
         }
     }
-    for i in (0..h).rev() {
-        for j in (0..w).rev() {
-            let mut max_height = -1;
+    /* Pass 2: bottom-right to top left (without edges) */
+    for i in (1..h-1).rev() {
+        for j in (1..w-1).rev() {
             /* visibility bottom */
-            if i < w-1 {
-                max_height = grid[(i+1, j)].neighbour_max_height(2);
-            }
-            grid[(i,j)].extend_visibility(max_height, 2);
+            let vb = grid[(i+1, j)].neighbour_visibility(2);
+            grid[(i,j)].extend_visibility(vb, 2);
             /* visibility right */
-            max_height = -1;
-            if j < h-1 {
-                max_height = grid[(i, j+1)].neighbour_max_height(1);
-            }
-            grid[(i,j)].extend_visibility(max_height, 1);
+            let vr = grid[(i, j+1)].neighbour_visibility(1);
+            grid[(i,j)].extend_visibility(vr, 1);
+            
             /* Total visibility */
             if grid[(i,j)].is_visible() {
                 trees_visible += 1;
             }
+            scenic_score = cmp::max(scenic_score, grid[(i,j)].scenic_score());
         }
     }
-    //println!("{:#?}", grid);
+    //println!("{:#?} scenic {}", grid[(1, 2)], grid[(1, 2)].scenic_score());
+    //println!("{:#?} scenic {}", grid[(3, 2)], grid[(3, 2)].scenic_score());
     println!("Total trees visible: {}", trees_visible);
+    println!("Best scenic score: {}", scenic_score);
 }
