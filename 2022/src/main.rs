@@ -1,8 +1,8 @@
-#![allow(unused_imports)]
 use std::path::Path;
 
 /* Create modules */
 mod file_utils;
+/*
 mod day1_to_4;
 mod day5;
 mod day6;
@@ -13,6 +13,9 @@ use day5::day5;
 use day6::day6;
 use day7::day7;
 use day8::day8;
+*/
+mod day9;
+use day9::day9;
 
 /* Main */
 fn main()
@@ -24,5 +27,6 @@ fn main()
     //day5(Path::new("inputs/day5.txt"), true);
     //day6(Path::new("inputs/day6.txt"), true);
     //day7(Path::new("inputs/day7.txt"));
-    day8(Path::new("inputs/day8.txt"));
+    //day8(Path::new("inputs/day8.txt"));
+    day9(Path::new("inputs/day9.txt"));
 }

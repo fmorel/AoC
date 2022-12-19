@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 array2d = "0.3.0"
+vector2d = "2.2.0"
 
