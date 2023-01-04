@@ -16,18 +16,19 @@ struct Terrain
 
 impl Terrain
 {
-    fn new(code: u8) -> Terrain
+    fn new(code: u8, part2: bool) -> Terrain
     {
         match code {
             b'S' =>  Terrain {
                         height: 0,
                         start: true,
-                        distance: Some(0),
+                        distance: if part2 {None} else {Some(0)},
                         ..Default::default()
                     },
             b'E' =>  Terrain {
                         height: 25,
                         end: true,
+                        distance: if part2 {Some(0)} else {None},
                         ..Default::default()
                     },
             c   =>  Terrain {
@@ -58,9 +59,13 @@ impl Terrain
     {
         neighbour.height <= self.height+1
     }
+    fn can_reach_downhill(&self, neighbour: &Terrain) -> bool 
+    {
+        neighbour.height >= self.height-1
+    }
 }
 
-pub fn day12(filename: &Path)
+pub fn day12(filename: &Path, part2: bool)
 {
     /* Parse the grid */
     let lines = file_to_lines(filename);
@@ -68,7 +73,7 @@ pub fn day12(filename: &Path)
     for l in lines {
         let mut row: Vec<Terrain> = Vec::new();
         for b in l.bytes() {
-            row.push(Terrain::new(b));
+            row.push(Terrain::new(b, part2));
         }
         rows.push(row);
     }
@@ -82,7 +87,11 @@ pub fn day12(filename: &Path)
     for i in 0..h {
         for j in 0..w {
             grid[(i,j)].set_coord((i,j),(h,w));
-            if grid[(i,j)].start {
+            if !part2 && grid[(i,j)].start {
+                queue.push_back((i, j));
+            }
+            /* Part 2: start from the end */
+            if part2 && grid[(i,j)].end {
                 queue.push_back((i, j));
             }
         }
@@ -95,12 +104,25 @@ pub fn day12(filename: &Path)
          * Mark them with distance + 1*/
         for (u,v) in t.neighbours.iter() {
             let mut tn = &mut grid[(*u,*v)];
-            if tn.distance.is_none() && t.can_reach(tn) {
-                tn.distance = Some(t.distance.unwrap() + 1);
-                queue.push_back((*u,*v));
-                if tn.end {
-                    min_distance = tn.distance.unwrap();
-                    break 'bfs;
+            if tn.distance.is_none() {
+                if part2 {
+                    if t.can_reach_downhill(tn) {
+                        tn.distance = Some(t.distance.unwrap() + 1);
+                        queue.push_back((*u,*v));
+                        if tn.height == 0 {
+                            min_distance = tn.distance.unwrap();
+                            break 'bfs;
+                        }
+                    }
+                } else {
+                    if t.can_reach(tn) {
+                        tn.distance = Some(t.distance.unwrap() + 1);
+                        queue.push_back((*u,*v));
+                        if tn.end {
+                            min_distance = tn.distance.unwrap();
+                            break 'bfs;
+                        }
+                    }
                 }
             }
         }
