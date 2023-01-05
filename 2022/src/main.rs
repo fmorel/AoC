@@ -15,9 +15,11 @@ use day7::day7;
 use day8::day8;
 mod day9;
 use day9::day9;
-*/
 mod day12;
 use day12::day12;
+*/
+mod day10;
+use day10::day10;
 
 /* Main */
 fn main()
@@ -31,5 +33,6 @@ fn main()
     //day7(Path::new("inputs/day7.txt"));
     //day8(Path::new("inputs/day8.txt"));
     //day9(Path::new("inputs/day9.txt"));
-    day12(Path::new("inputs/day12.txt"), true);
+    //day12(Path::new("inputs/day12.txt"), true);
+    day10(Path::new("inputs/day10.txt"));
 }
