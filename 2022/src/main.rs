@@ -1,3 +1,5 @@
+#![feature(get_many_mut)]
+
 use std::path::Path;
 
 /* Create modules */
@@ -17,9 +19,11 @@ mod day9;
 use day9::day9;
 mod day12;
 use day12::day12;
-*/
 mod day10;
 use day10::day10;
+*/
+mod day11;
+use day11::day11;
 
 /* Main */
 fn main()
@@ -34,5 +38,5 @@ fn main()
     //day8(Path::new("inputs/day8.txt"));
     //day9(Path::new("inputs/day9.txt"));
     //day12(Path::new("inputs/day12.txt"), true);
-    day10(Path::new("inputs/day10.txt"));
+    day11(Path::new("inputs/day11.txt"), true);
 }
