@@ -1,4 +1,4 @@
-#![feature(get_many_mut)]
+//#![feature(get_many_mut)] - day11 dependency
 
 use std::path::Path;
 
@@ -21,9 +21,11 @@ mod day12;
 use day12::day12;
 mod day10;
 use day10::day10;
-*/
 mod day11;
 use day11::day11;
+*/
+mod day14;
+use day14::day14;
 
 /* Main */
 fn main()
@@ -38,5 +40,6 @@ fn main()
     //day8(Path::new("inputs/day8.txt"));
     //day9(Path::new("inputs/day9.txt"));
     //day12(Path::new("inputs/day12.txt"), true);
-    day11(Path::new("inputs/day11.txt"), true);
+    //day11(Path::new("inputs/day11.txt"), true);
+    day14(Path::new("inputs/day14.txt"));
 }

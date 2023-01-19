@@ -42,6 +42,38 @@ fn parse_rock_path(grid: &mut Array2D<u8>, line: &str)
     }
 }
 
+fn drop_grain(grid: &mut Array2D<u8>) -> bool
+{
+    let (mut x, mut y) = (20, 0);
+    loop {
+        let mut e = grid.get(y+1,x).unwrap();
+        if *e == 0 {
+            y = y+1;
+            /* down in the abyss */
+            if y > 195 {
+                return false;
+            }
+            continue;
+        }
+        e = grid.get(y+1, x-1).unwrap();
+        if *e == 0 {
+            y = y+1;
+            x = x-1;
+            continue;
+        }
+        e = grid.get(y+1, x+1).unwrap();
+        if *e == 0 {
+            y = y+1;
+            x = x+1;
+            continue;
+        }
+        /* grain is settled */
+        grid.set(y, x, 2).unwrap();
+        break;
+    }
+    return true;
+}
+
 fn grid_print(grid: &Array2D<u8>)
 {
     for row_iter in grid.rows_iter() {
@@ -61,9 +93,15 @@ fn grid_print(grid: &Array2D<u8>)
 pub fn day14(filename: &Path)
 {
     let lines = file_to_lines(filename);
-    let mut grid : Array2D<u8> = Array2D::filled_with(0, 190, 120);
+    let mut n_sand = 0;
+    let mut grid : Array2D<u8> = Array2D::filled_with(0, 200, 120);
     for l in lines {
         parse_rock_path(&mut grid, &l);
     }
+    grid_print(&grid);
+    while drop_grain(&mut grid) {
+        n_sand += 1;
+    }
+    println!("All grains settled after {}", n_sand);
     grid_print(&grid);
 }
