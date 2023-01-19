@@ -41,5 +41,5 @@ fn main()
     //day9(Path::new("inputs/day9.txt"));
     //day12(Path::new("inputs/day12.txt"), true);
     //day11(Path::new("inputs/day11.txt"), true);
-    day14(Path::new("inputs/day14.txt"));
+    day14(Path::new("inputs/day14.txt"), true);
 }

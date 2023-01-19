@@ -8,17 +8,21 @@ use array2d::Array2D;
  * 2 = sand
  */
 
+const X_SIZE: usize = 400;
+
 fn parse_coord(coord: &str) -> (usize, usize)
 {
     let (c0, c1) = coord.split_once(',').unwrap();
-    (c0.parse::<usize>().unwrap() - 480, c1.parse::<usize>().unwrap())
+    (c0.parse::<usize>().unwrap() - (500 - X_SIZE/2), c1.parse::<usize>().unwrap())
 }
 
-fn parse_rock_path(grid: &mut Array2D<u8>, line: &str)
+/* Returns the max depth y_max */
+fn parse_rock_path(grid: &mut Array2D<u8>, line: &str) -> usize
 {
     let mut coords = line.split(" -> ");
     let c0 = coords.next().unwrap();
     let (mut x0, mut y0) = parse_coord(c0);
+    let mut y_max = y0;
     for c in coords {
         let (x1, y1) = parse_coord(c);
         if x1 > x0 {
@@ -38,19 +42,23 @@ fn parse_rock_path(grid: &mut Array2D<u8>, line: &str)
                 grid.set(y, x0, 1).unwrap();
             }
         }
+        if y1 > y_max {
+            y_max = y1;
+        }
         (x0, y0) = (x1, y1);
     }
+    y_max
 }
 
-fn drop_grain(grid: &mut Array2D<u8>) -> bool
+fn drop_grain(grid: &mut Array2D<u8>, y_max: usize, part2: bool) -> bool
 {
-    let (mut x, mut y) = (20, 0);
+    let (mut x, mut y) = (X_SIZE/2, 0);
     loop {
         let mut e = grid.get(y+1,x).unwrap();
         if *e == 0 {
             y = y+1;
             /* down in the abyss */
-            if y > 195 {
+            if !part2 && y > y_max+1 {
                 return false;
             }
             continue;
@@ -69,6 +77,9 @@ fn drop_grain(grid: &mut Array2D<u8>) -> bool
         }
         /* grain is settled */
         grid.set(y, x, 2).unwrap();
+        if y == 0 {
+            return false;
+        }
         break;
     }
     return true;
@@ -90,16 +101,25 @@ fn grid_print(grid: &Array2D<u8>)
     }
 }
 
-pub fn day14(filename: &Path)
+pub fn day14(filename: &Path, part2: bool)
 {
     let lines = file_to_lines(filename);
     let mut n_sand = 0;
-    let mut grid : Array2D<u8> = Array2D::filled_with(0, 200, 120);
+    let mut y_max = 0;
+    let mut grid : Array2D<u8> = Array2D::filled_with(0, 200, X_SIZE);
     for l in lines {
-        parse_rock_path(&mut grid, &l);
+        let y = parse_rock_path(&mut grid, &l);
+        if y > y_max {
+            y_max = y;
+        }
+    }
+    if part2 {
+        for x in 0..X_SIZE {
+            grid.set(y_max+2, x, 1).unwrap();
+        }
     }
     grid_print(&grid);
-    while drop_grain(&mut grid) {
+    while drop_grain(&mut grid, y_max, part2) {
         n_sand += 1;
     }
     println!("All grains settled after {}", n_sand);
